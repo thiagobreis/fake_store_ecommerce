@@ -4,7 +4,6 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import logging
 from pathlib import Path
-from typing import Callable
 
 def search_api(endpoint:str,resource:str) -> pd.DataFrame:
     logging.info(f'Searching {resource} data...')
@@ -26,7 +25,7 @@ def load_raw_data(df: pd.DataFrame,schema: pa.Schema, raw_folder:str, resource:s
 
     except Exception as e:
         logging.error(f'Error while loading data: {e}')
-        
+        raise
 
 def  transform_users(df: pd.DataFrame):
     # DataFrame definition
