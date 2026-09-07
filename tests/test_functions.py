@@ -5,6 +5,7 @@ from datetime import datetime
 from src.utils.functions import transform_carts, transform_users, load_raw_data
 from src.utils.schemas import CARTS, USERS
 import logging
+import src.ecommerce_ingestion.ingestion as ingestion
 
 def test_transform_carts():
     data = [
@@ -139,3 +140,55 @@ def test_search_api_raises_on_http_error(monkeypatch):
     with pytest.raises(requests.HTTPError):
         search_api('https://fakestoreapi.com', 'products')
     
+    
+def test_run_ingestion_calls_transform_when_transform_exists(monkeypatch):
+    calls = {}
+    fake_df = pd.DataFrame({'a': [1]})
+    transformed_df = pd.DataFrame({'a': [2]})
+
+    def fake_search_api(api_url, resource):
+        calls['search_api_args'] = (api_url, resource)
+        return fake_df
+
+    def fake_transform(df):
+        calls['transform_received'] = df
+        return transformed_df
+
+    def fake_load_raw_data(df, schema, raw_folder, resource):
+        calls['load_raw_data_args'] = (df, schema, raw_folder, resource)
+
+    monkeypatch.setattr(ingestion, 'search_api', fake_search_api)
+    monkeypatch.setattr(ingestion, 'load_raw_data', fake_load_raw_data)
+    monkeypatch.setattr(ingestion, 'RESOURCES', {
+        'carts': {'schema': 'FAKE_SCHEMA', 'transform': fake_transform}
+    })
+
+    ingestion.run_ingestion('carts', 'http://fake-api.com', '/tmp/raw')
+
+    assert calls['search_api_args'] == ('http://fake-api.com', 'carts')
+    assert calls['transform_received'].equals(fake_df)
+    loaded_df, schema, raw_folder, resource = calls['load_raw_data_args']
+    assert loaded_df.equals(transformed_df)
+    assert schema == 'FAKE_SCHEMA'
+    assert resource == 'carts'
+
+
+def test_run_ingestion_skips_transform_when_none(monkeypatch):
+    calls = {}
+    fake_df = pd.DataFrame({'a': [1]})
+
+    def fake_search_api(api_url, resource):
+        return fake_df
+
+    def fake_load_raw_data(df, schema, raw_folder, resource):
+        calls['loaded_df'] = df
+
+    monkeypatch.setattr(ingestion, 'search_api', fake_search_api)
+    monkeypatch.setattr(ingestion, 'load_raw_data', fake_load_raw_data)
+    monkeypatch.setattr(ingestion, 'RESOURCES', {
+        'products': {'schema': 'FAKE_SCHEMA', 'transform': None}
+    })
+
+    ingestion.run_ingestion('products', 'http://fake-api.com', '/tmp/raw')
+
+    assert calls['loaded_df'].equals(fake_df)    

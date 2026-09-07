@@ -35,7 +35,7 @@ def  transform_users(df: pd.DataFrame):
         'number': str(addr['number']),
         'geolocation': {
             'lat': float(addr['geolocation']['lat']),
-            'long': float(addr['geolocation']['lat'])
+            'long': float(addr['geolocation']['long'])
         }
     })
     

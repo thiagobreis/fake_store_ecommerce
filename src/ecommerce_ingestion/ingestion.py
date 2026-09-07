@@ -59,7 +59,7 @@ parser.add_argument(
     help='Which resource to ingest, or "all" for every listed resource'
 )
 
-args = parser.parse_args()
+
 
 # Execute API ingestion
 def run_ingestion(resource:str, api_url:str, raw_folder:str) -> None:
@@ -70,10 +70,14 @@ def run_ingestion(resource:str, api_url:str, raw_folder:str) -> None:
     load_raw_data(df,config['schema'],raw_folder,resource) 
 
 
-if args.resource == 'all':
-    for resource_name in RESOURCES:
-        run_ingestion(resource_name, api_url, raw_folder)
-else:
-    run_ingestion(args.resource, api_url, raw_folder)
+def main():
+    args = parser.parse_args()
+    if args.resource == 'all':
+        for resource_name in RESOURCES:
+            run_ingestion(resource_name, api_url, raw_folder)
+    else:
+        run_ingestion(args.resource, api_url, raw_folder)
     
-    
+
+if __name__ == "__main__":
+    main()
